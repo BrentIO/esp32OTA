@@ -1,4 +1,4 @@
-name: Arduino CI
+name: 🔧 Compile Check
 
 on:
   pull_request:
