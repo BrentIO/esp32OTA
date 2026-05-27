@@ -1,6 +1,10 @@
 /*
  * periodicOTA — checks for an update once per day and flashes automatically.
  *
+ * Uses the ESP-IDF built-in Mozilla CA bundle via useBundledCerts(). No client
+ * object or certificate management is required; the library handles HTTPS
+ * internally through esp_http_client with crt_bundle_attach.
+ *
  * Version and app name must be embedded by the build system:
  *   arduino-cli: --build-property "build.extra_flags=-DPROJECT_VER=\"2026.05.01\" -DPROJECT_NAME=\"My Device\""
  *   ESP-IDF:    set(PROJECT_VER "2026.05.01") in CMakeLists.txt
@@ -11,19 +15,13 @@
 
 #include <esp32OTA.h>
 #include <WiFi.h>
-#include <WiFiClientSecure.h>
-
-// ESP-IDF bundled Mozilla CA certificate bundle.
-extern const uint8_t x509_crt_imported_bundle_bin_start[] asm("_binary_x509_crt_bundle_start");
-extern const uint8_t x509_crt_imported_bundle_bin_end[]   asm("_binary_x509_crt_bundle_end");
 
 const char* WIFI_SSID     = "your-ssid";
 const char* WIFI_PASSWORD = "your-password";
 const char* MANIFEST_URL  = "https://firmware.example.com/manifest.json";
 const char* DEVICE_UUID   = "your-device-uuid";
 
-esp32OTA       ota;
-WiFiClientSecure client;
+esp32OTA ota;
 
 void setup() {
     Serial.begin(115200);
@@ -38,9 +36,7 @@ void setup() {
     // Always call first in setup() — cancels rollback if this is a post-OTA boot.
     ota.markAppValid();
 
-    client.setCACertBundle(x509_crt_imported_bundle_bin_start,
-                           x509_crt_imported_bundle_bin_end - x509_crt_imported_bundle_bin_start);
-    ota.setClient(&client);
+    ota.useBundledCerts();
     ota.setManifestURL(MANIFEST_URL);
     ota.addHeader("X-Device-UUID", DEVICE_UUID);
 

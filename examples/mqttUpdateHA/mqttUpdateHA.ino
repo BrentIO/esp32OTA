@@ -4,6 +4,10 @@
  * The library provides version/name/release_url via onAvailable; this sketch
  * publishes them to the HA MQTT Update entity. MQTT install commands trigger execOTA().
  *
+ * Uses the ESP-IDF built-in Mozilla CA bundle via useBundledCerts() for OTA HTTPS.
+ * The MQTT transport uses a plain WiFiClient on an unencrypted broker connection;
+ * swap it for WiFiClientSecure if your broker requires TLS.
+ *
  * HA MQTT Update integration docs:
  *   https://www.home-assistant.io/integrations/update.mqtt/
  *
@@ -19,12 +23,8 @@
 
 #include <esp32OTA.h>
 #include <WiFi.h>
-#include <WiFiClientSecure.h>
 #include <PubSubClient.h>
 #include <esp_ota_ops.h>
-
-extern const uint8_t x509_crt_imported_bundle_bin_start[] asm("_binary_x509_crt_bundle_start");
-extern const uint8_t x509_crt_imported_bundle_bin_end[]   asm("_binary_x509_crt_bundle_end");
 
 const char* WIFI_SSID     = "your-ssid";
 const char* WIFI_PASSWORD = "your-password";
@@ -41,10 +41,9 @@ const char* HA_CONFIG_TOPIC  = "homeassistant/update/" MQTT_CLIENT_ID "/config";
 const char* HA_STATE_TOPIC   = "homeassistant/update/" MQTT_CLIENT_ID "/state";
 const char* HA_COMMAND_TOPIC = "homeassistant/update/" MQTT_CLIENT_ID "/set";
 
-esp32OTA         ota;
-WiFiClientSecure otaClient;
-WiFiClient       mqttTransport;
-PubSubClient     mqtt(mqttTransport);
+esp32OTA     ota;
+WiFiClient   mqttTransport;
+PubSubClient mqtt(mqttTransport);
 
 void publishState(const char* installed, const char* latest,
                   const char* title, const char* releaseUrl) {
@@ -108,9 +107,7 @@ void setup() {
 
     ota.markAppValid();
 
-    otaClient.setCACertBundle(x509_crt_imported_bundle_bin_start,
-                              x509_crt_imported_bundle_bin_end - x509_crt_imported_bundle_bin_start);
-    ota.setClient(&otaClient);
+    ota.useBundledCerts();
     ota.setManifestURL(MANIFEST_URL);
 
     ota.onAvailable([](const char* version, const char* appName, const char* releaseUrl) {

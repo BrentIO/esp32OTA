@@ -20,6 +20,21 @@
 #include <vector>
 #include <functional>
 
+#include <NetworkClientSecure.h>
+
+// Subclass that accesses the protected sslclient context to activate the
+// ESP-IDF built-in Mozilla CA bundle via esp_crt_bundle_attach, without
+// needing raw bundle bytes (which are not available as ELF symbols in
+// Arduino/PlatformIO builds). Works on any lwIP-backed transport: WiFi,
+// native RMII Ethernet, or W5500 attached via the ESP-IDF SPI Ethernet driver.
+class esp32OTA_SecureClient : public NetworkClientSecure {
+public:
+    void useFrameworkCertBundle() {
+        attach_ssl_certificate_bundle(sslclient.get(), true);
+        _use_ca_bundle = true;
+    }
+};
+
 using OTAProgressCallback      = std::function<void(const char* partition, size_t written, size_t total)>;
 using OTAPartitionDoneCallback = std::function<void(const char* partition, bool success)>;
 using OTACompleteCallback      = std::function<void(bool success)>;
@@ -28,6 +43,8 @@ using OTAErrorCallback         = std::function<void(const char* partition, int e
 
 class esp32OTA {
 public:
+    ~esp32OTA();
+
     // URL of manifest JSON to fetch for periodic/automatic OTA checks.
     void setManifestURL(const char* url);
     void setManifestURL(const String& url);
@@ -38,12 +55,18 @@ public:
 
     // Set the network client. Must be set before any OTA operation.
     // For WiFi:   pass a WiFiClient* or WiFiClientSecure*
-    // For W5500:  pass an SSLClient<EthernetClient>* or EthernetClient*
+    // For W5500:  pass an EthernetClient* or SSLClient<EthernetClient>*
     // The library does not own the pointer; the caller manages the client lifetime.
     void setClient(Client* client);
 
-    // Intent marker — TLS configuration is handled entirely by the Client* passed
-    // via setClient(). Attach the certificate bundle to the client before calling setClient().
+    // Activate the ESP-IDF built-in Mozilla CA bundle for HTTPS.
+    // Internally allocates an esp32OTA_SecureClient and configures it via
+    // esp_crt_bundle_attach — no raw bundle bytes or manual cert setup required.
+    // setClient() is not required when this is called.
+    //
+    // Requires a lwIP-backed network interface: WiFi, native RMII Ethernet, or
+    // W5500 attached via the ESP-IDF SPI Ethernet driver (ETH.begin()).
+    // Does not work with W5500 via the Arduino Ethernet library + SSLClient (BearSSL).
     void useBundledCerts();
 
     // Convenience getter/setter for a PEM-encoded root CA string.
@@ -97,7 +120,8 @@ public:
 private:
     struct Header { String name; String value; };
 
-    Client*              _client = nullptr;
+    Client*                  _client       = nullptr;
+    esp32OTA_SecureClient*   _bundleClient = nullptr;
     String               _manifestURL;
     std::vector<Header>  _headers;
     std::vector<String>  _blockedPartitions;
