@@ -44,6 +44,3 @@ jobs:
         with:
           tag_name: ${{ inputs.version }}
           generate_release_notes: true
-          files: |
-            library.json
-            library.properties
