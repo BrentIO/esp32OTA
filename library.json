@@ -1,6 +1,6 @@
 {
     "name": "esp32OTA",
-    "version": "9999.99.99",
+    "version": "2026.05.01",
     "description": "ESP32 OTA library supporting multi-partition updates, HTTP/HTTPS, rollback, and custom headers",
     "keywords": ["ota", "esp32", "firmware", "update"],
     "repository": {
