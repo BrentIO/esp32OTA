@@ -24,14 +24,17 @@
 #include <esp_ota_ops.h>
 
 extern const uint8_t x509_crt_imported_bundle_bin_start[] asm("_binary_x509_crt_bundle_start");
+extern const uint8_t x509_crt_imported_bundle_bin_end[]   asm("_binary_x509_crt_bundle_end");
 
 const char* WIFI_SSID     = "your-ssid";
 const char* WIFI_PASSWORD = "your-password";
 const char* MANIFEST_URL  = "https://firmware.example.com/manifest.json";
 
-const char* MQTT_BROKER    = "mqtt.example.com";
-const int   MQTT_PORT      = 1883;
-const char* MQTT_CLIENT_ID = "my-device";
+const char* MQTT_BROKER = "mqtt.example.com";
+const int   MQTT_PORT   = 1883;
+
+// Used in compile-time string concatenation for topic names — must be a #define
+#define MQTT_CLIENT_ID "my-device"
 
 // Home Assistant MQTT Update entity topics
 const char* HA_CONFIG_TOPIC  = "homeassistant/update/" MQTT_CLIENT_ID "/config";
