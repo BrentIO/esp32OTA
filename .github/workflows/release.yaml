@@ -17,18 +17,22 @@ jobs:
         with:
           ref: main
 
-      - name: Update version in library files
+      - name: Verify versions match input
         run: |
-          sed -i "s/^version=.*/version=${{ inputs.version }}/" library.properties
-          sed -i 's/"version": ".*"/"version": "${{ inputs.version }}"/' library.json
+          PROPS_VERSION=$(grep '^version=' library.properties | cut -d'=' -f2)
+          JSON_VERSION=$(grep '"version"' library.json | sed 's/.*"version": "\(.*\)".*/\1/')
 
-      - name: Commit and push version bump
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add library.properties library.json
-          git commit -m "Release ${{ inputs.version }}"
-          git push origin main
+          if [ "$PROPS_VERSION" != "${{ inputs.version }}" ]; then
+            echo "❌ library.properties version ($PROPS_VERSION) does not match release input (${{ inputs.version }})"
+            exit 1
+          fi
+
+          if [ "$JSON_VERSION" != "${{ inputs.version }}" ]; then
+            echo "❌ library.json version ($JSON_VERSION) does not match release input (${{ inputs.version }})"
+            exit 1
+          fi
+
+          echo "✅ Both library files match ${{ inputs.version }}"
 
       - name: Tag and push
         run: |
