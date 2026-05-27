@@ -20,7 +20,7 @@ jobs:
       - name: Verify versions match input
         run: |
           PROPS_VERSION=$(grep '^version=' library.properties | cut -d'=' -f2)
-          JSON_VERSION=$(grep '"version"' library.json | sed 's/.*"version": "\(.*\)".*/\1/')
+          JSON_VERSION=$(jq -r '.version' library.json)
 
           if [ "$PROPS_VERSION" != "${{ inputs.version }}" ]; then
             echo "❌ library.properties version ($PROPS_VERSION) does not match release input (${{ inputs.version }})"
