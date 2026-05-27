@@ -2,6 +2,12 @@
 #include <mbedtls/md.h>
 #include <esp_timer.h>
 
+// ─── Lifecycle ────────────────────────────────────────────────────────────────
+
+esp32OTA::~esp32OTA() {
+    delete _bundleClient;
+}
+
 // ─── Configuration ────────────────────────────────────────────────────────────
 
 void esp32OTA::setManifestURL(const char* url)   { _manifestURL = url; }
@@ -12,7 +18,14 @@ void esp32OTA::addHeader(const char* name, const char* value) {
 }
 
 void esp32OTA::setClient(Client* client) { _client = client; }
-void esp32OTA::useBundledCerts()         {}
+
+void esp32OTA::useBundledCerts() {
+    if (!_bundleClient) {
+        _bundleClient = new esp32OTA_SecureClient();
+        _bundleClient->useFrameworkCertBundle();
+    }
+    _client = _bundleClient;
+}
 
 void esp32OTA::setCertificate(const char* pem) { _certificate = pem; }
 const char* esp32OTA::getCertificate() const   { return _certificate.c_str(); }
@@ -252,7 +265,7 @@ bool esp32OTA::_downloadToPartition(const char* url, const esp_partition_t* targ
 
             if (remaining == 0 && contentLength > 0) break;
         } else {
-            if (esp_timer_get_time() - lastData > ((int64_t)ESP32OTA_STALL_TIMEOUT_MS * 1000LL)) break;  // stall timeout
+            if (esp_timer_get_time() - lastData > ((int64_t)ESP32OTA_STALL_TIMEOUT_MS * 1000LL)) break;
             delay(1);
         }
     }
