@@ -61,7 +61,9 @@ If version is not embedded, `checkForUpdate()` will fire `onError` with `ESP_ERR
 
 The `app` partition is always flashed first, regardless of its position in `binaries`. If app flashing fails, no other partitions are touched.
 
-For multi-application manifests, use a top-level JSON array. The library filters by `application_name` matching the running firmware's `project_name` from `esp_app_desc_t`.
+`application_name` is required in all JSON manifests (object or array). Entries missing it are rejected with `onError(ESP_ERR_INVALID_ARG)`. For a forced flash with no manifest, use `flashPartition(label, url)` instead.
+
+For multi-application manifests, use a top-level JSON array. The library matches the first entry whose `application_name` equals the running firmware's `project_name` from `esp_app_desc_t`.
 
 ### Optional SHA-256 Verification
 

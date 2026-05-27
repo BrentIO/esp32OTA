@@ -184,7 +184,7 @@ JsonObject esp32OTA::_findManifestEntry(JsonDocument& doc, const char* projectNa
 
     JsonObject obj = doc.as<JsonObject>();
     const char* name = obj["application_name"] | (const char*)nullptr;
-    if (name && strcmp(name, projectName) != 0) {
+    if (!name || strcmp(name, projectName) != 0) {
         if (_onError) _onError("", (int)ESP_ERR_INVALID_ARG);
         return JsonObject();
     }
