@@ -118,14 +118,46 @@ void setup() {
 
     ota.onProgress([](const char* partition, size_t written, size_t total) {
         Serial.printf("[%s] %u / %u\n", partition, written, total);
+        // Publish in_progress percentage so HA shows a progress bar
+        const esp_app_desc_t* desc = esp_ota_get_app_description();
+        int pct = (total > 0) ? (int)(100 * written / total) : 1;
+        char payload[256];
+        snprintf(payload, sizeof(payload),
+            "{\"installed_version\":\"%s\",\"latest_version\":\"%s\",\"in_progress\":%d}",
+            desc->version, ota.getAvailableVersion(), pct);
+        mqtt.publish(HA_STATE_TOPIC, payload);
     });
 
     ota.onComplete([](bool success) {
         Serial.println(success ? "OTA complete — rebooting" : "OTA failed");
+        if (!success) {
+            // Reset in_progress so HA removes the progress bar.
+            // HA confirms a successful update on the next boot when installed_version
+            // matches latest_version in the reconnect publishState() call.
+            const esp_app_desc_t* desc = esp_ota_get_app_description();
+            char payload[256];
+            snprintf(payload, sizeof(payload),
+                "{\"installed_version\":\"%s\",\"latest_version\":\"%s\",\"in_progress\":false}",
+                desc->version, ota.getAvailableVersion());
+            mqtt.publish(HA_STATE_TOPIC, payload, /*retain=*/true);
+        }
     });
 
     ota.onError([](const char* partition, int code) {
         Serial.printf("OTA error [%s]: 0x%x\n", partition, code);
+        // HA MQTT Update has no native error state; reset in_progress and publish
+        // error details to a dedicated topic for application-level handling.
+        const esp_app_desc_t* desc = esp_ota_get_app_description();
+        char statePayload[256];
+        snprintf(statePayload, sizeof(statePayload),
+            "{\"installed_version\":\"%s\",\"latest_version\":\"%s\",\"in_progress\":false}",
+            desc->version, ota.getAvailableVersion());
+        mqtt.publish(HA_STATE_TOPIC, statePayload, /*retain=*/true);
+
+        char errPayload[128];
+        snprintf(errPayload, sizeof(errPayload),
+            "{\"partition\":\"%s\",\"code\":%d}", partition, code);
+        mqtt.publish("homeassistant/update/" MQTT_CLIENT_ID "/error", errPayload);
     });
 
     mqtt.setServer(MQTT_BROKER, MQTT_PORT);

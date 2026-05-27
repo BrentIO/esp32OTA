@@ -1,5 +1,6 @@
 #include "esp32OTA.h"
 #include <mbedtls/md.h>
+#include <esp_timer.h>
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
@@ -109,8 +110,8 @@ bool esp32OTA::_httpConnect(const char* url, int& contentLength) {
     _client->print("Connection: close\r\n\r\n");
 
     // Wait for response
-    unsigned long deadline = millis() + 10000UL;
-    while (!_client->available() && millis() < deadline) delay(10);
+    int64_t deadline = esp_timer_get_time() + 10000000LL;
+    while (!_client->available() && esp_timer_get_time() < deadline) delay(10);
     if (!_client->available()) {
         _client->stop();
         return false;
@@ -134,7 +135,9 @@ bool esp32OTA::_httpConnect(const char* url, int& contentLength) {
         String lower = line;
         lower.toLowerCase();
         if (lower.startsWith("content-length:")) {
-            contentLength = line.substring(line.indexOf(':') + 1).trim().toInt();
+            String val = line.substring(line.indexOf(':') + 1);
+            val.trim();
+            contentLength = val.toInt();
         }
     }
 
@@ -150,17 +153,17 @@ String esp32OTA::_httpGetString(const char* url) {
     if (contentLength > 0) body.reserve(contentLength);
 
     uint8_t buf[256];
-    unsigned long lastData = millis();
+    int64_t lastData = esp_timer_get_time();
     while (_client->connected() || _client->available()) {
         if (_client->available()) {
-            lastData = millis();
+            lastData = esp_timer_get_time();
             int toRead = sizeof(buf);
             if (contentLength > 0) toRead = min(toRead, contentLength - (int)body.length());
             int n = _client->readBytes(buf, toRead);
             body.concat((const char*)buf, n);
             if (contentLength > 0 && (int)body.length() >= contentLength) break;
         } else {
-            if (millis() - lastData > 5000UL) break;
+            if (esp_timer_get_time() - lastData > 5000000LL) break;
             delay(1);
         }
     }
@@ -216,11 +219,11 @@ bool esp32OTA::_downloadToPartition(const char* url, const esp_partition_t* targ
     size_t written  = 0;
     size_t total    = (contentLength > 0) ? (size_t)contentLength : 0;
     int    remaining = contentLength;
-    unsigned long lastData = millis();
+    int64_t lastData = esp_timer_get_time();
 
     while (_client->connected() || _client->available()) {
         if (_client->available()) {
-            lastData = millis();
+            lastData = esp_timer_get_time();
             int toRead = sizeof(buf);
             if (remaining > 0) toRead = min(toRead, remaining);
 
@@ -249,7 +252,7 @@ bool esp32OTA::_downloadToPartition(const char* url, const esp_partition_t* targ
 
             if (remaining == 0 && contentLength > 0) break;
         } else {
-            if (millis() - lastData > 5000UL) break;  // stall timeout
+            if (esp_timer_get_time() - lastData > 5000000LL) break;  // stall timeout
             delay(1);
         }
     }
