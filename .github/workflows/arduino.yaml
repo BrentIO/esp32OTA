@@ -22,6 +22,9 @@ jobs:
           arduino-cli lib install "ArduinoJson"
           arduino-cli lib install "PubSubClient"
 
+      - name: Link library into Arduino libraries path
+        run: ln -s $GITHUB_WORKSPACE $HOME/Arduino/libraries/esp32OTA
+
       - name: Compile periodicOTA example
         run: arduino-cli compile --fqbn esp32:esp32:esp32 examples/periodicOTA/periodicOTA.ino
 
