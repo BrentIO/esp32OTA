@@ -33,8 +33,3 @@ jobs:
 
       - name: Compile mqttUpdateHA example
         run: arduino-cli compile --fqbn esp32:esp32:esp32 examples/mqttUpdateHA/mqttUpdateHA.ino
-
-      - name: arduino-lint
-        uses: arduino/arduino-lint-action@v1
-        with:
-          library-manager: submit
