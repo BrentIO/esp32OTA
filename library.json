@@ -1,0 +1,19 @@
+{
+    "name": "esp32OTA",
+    "version": "2026.05.01",
+    "description": "ESP32 OTA library supporting multi-partition updates, HTTP/HTTPS, rollback, and custom headers",
+    "keywords": ["ota", "esp32", "firmware", "update"],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/BrentIO/esp32OTA.git"
+    },
+    "authors": [
+        {"name": "Brent Andrew Hendricks", "maintainer": true}
+    ],
+    "license": "MIT",
+    "frameworks": "arduino",
+    "platforms": "espressif32",
+    "dependencies": [
+        {"name": "ArduinoJson", "version": ">=7.0.0"}
+    ]
+}
