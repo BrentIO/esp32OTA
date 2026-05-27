@@ -105,7 +105,8 @@ void setup() {
 
     ota.markAppValid();
 
-    otaClient.setCACertBundle(x509_crt_imported_bundle_bin_start);
+    otaClient.setCACertBundle(x509_crt_imported_bundle_bin_start,
+                              x509_crt_imported_bundle_bin_end - x509_crt_imported_bundle_bin_start);
     ota.setClient(&otaClient);
     ota.setManifestURL(MANIFEST_URL);
 

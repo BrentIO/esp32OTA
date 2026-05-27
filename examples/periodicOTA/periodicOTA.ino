@@ -40,7 +40,8 @@ void setup() {
     // Always call first in setup() — cancels rollback if this is a post-OTA boot.
     ota.markAppValid();
 
-    client.setCACertBundle(x509_crt_imported_bundle_bin_start);
+    client.setCACertBundle(x509_crt_imported_bundle_bin_start,
+                           x509_crt_imported_bundle_bin_end - x509_crt_imported_bundle_bin_start);
     ota.setClient(&client);
     ota.setManifestURL(MANIFEST_URL);
     ota.addHeader("X-Device-UUID", DEVICE_UUID);
