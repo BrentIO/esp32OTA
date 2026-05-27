@@ -1,5 +1,17 @@
 #pragma once
 
+// Maximum time in milliseconds to wait for the server to begin responding.
+// Override at build time: -DESP32OTA_CONNECT_TIMEOUT_MS=20000
+#ifndef ESP32OTA_CONNECT_TIMEOUT_MS
+#define ESP32OTA_CONNECT_TIMEOUT_MS 10000
+#endif
+
+// Maximum time in milliseconds to wait between data chunks before aborting.
+// Override at build time: -DESP32OTA_STALL_TIMEOUT_MS=10000
+#ifndef ESP32OTA_STALL_TIMEOUT_MS
+#define ESP32OTA_STALL_TIMEOUT_MS 5000
+#endif
+
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <Client.h>

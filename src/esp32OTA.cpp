@@ -110,7 +110,7 @@ bool esp32OTA::_httpConnect(const char* url, int& contentLength) {
     _client->print("Connection: close\r\n\r\n");
 
     // Wait for response
-    int64_t deadline = esp_timer_get_time() + 10000000LL;
+    int64_t deadline = esp_timer_get_time() + ((int64_t)ESP32OTA_CONNECT_TIMEOUT_MS * 1000LL);
     while (!_client->available() && esp_timer_get_time() < deadline) delay(10);
     if (!_client->available()) {
         _client->stop();
@@ -163,7 +163,7 @@ String esp32OTA::_httpGetString(const char* url) {
             body.concat((const char*)buf, n);
             if (contentLength > 0 && (int)body.length() >= contentLength) break;
         } else {
-            if (esp_timer_get_time() - lastData > 5000000LL) break;
+            if (esp_timer_get_time() - lastData > ((int64_t)ESP32OTA_STALL_TIMEOUT_MS * 1000LL)) break;
             delay(1);
         }
     }
@@ -252,7 +252,7 @@ bool esp32OTA::_downloadToPartition(const char* url, const esp_partition_t* targ
 
             if (remaining == 0 && contentLength > 0) break;
         } else {
-            if (esp_timer_get_time() - lastData > 5000000LL) break;  // stall timeout
+            if (esp_timer_get_time() - lastData > ((int64_t)ESP32OTA_STALL_TIMEOUT_MS * 1000LL)) break;  // stall timeout
             delay(1);
         }
     }

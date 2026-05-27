@@ -13,6 +13,24 @@ Loosely based on [chrisjoyce911/esp32FOTA](https://github.com/chrisjoyce911/esp3
 
 ---
 
+## Configuration
+
+The following timeouts can be overridden at build time via `build_flags` in platformio.ini:
+
+| Define | Default | Description |
+|---|---|---|
+| `ESP32OTA_CONNECT_TIMEOUT_MS` | `10000` | Milliseconds to wait for the server to begin responding |
+| `ESP32OTA_STALL_TIMEOUT_MS` | `5000` | Milliseconds to wait between data chunks before aborting |
+
+```ini
+[env:myboard]
+build_flags =
+    -DESP32OTA_CONNECT_TIMEOUT_MS=20000
+    -DESP32OTA_STALL_TIMEOUT_MS=10000
+```
+
+---
+
 ## Requirements
 
 - ESP32 Arduino core 3.x+
