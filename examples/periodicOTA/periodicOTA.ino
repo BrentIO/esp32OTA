@@ -2,7 +2,7 @@
  * periodicOTA — checks for an update once per day and flashes automatically.
  *
  * Version and app name must be embedded by the build system:
- *   PlatformIO: board_build.cmake_extra_args = -DPROJECT_VER="2026.05.01" -DPROJECT_NAME="My Device"
+ *   arduino-cli: --build-property "build.extra_flags=-DPROJECT_VER=\"2026.05.01\" -DPROJECT_NAME=\"My Device\""
  *   ESP-IDF:    set(PROJECT_VER "2026.05.01") in CMakeLists.txt
  *
  * sdkconfig:
@@ -13,9 +13,7 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 
-// ESP-IDF bundled Mozilla CA certificate bundle — attach in platformio.ini:
-//   board_build.embed_files = ${COMPONENT_EMBED_FILES}
-// or via Arduino IDE board support.
+// ESP-IDF bundled Mozilla CA certificate bundle.
 extern const uint8_t x509_crt_imported_bundle_bin_start[] asm("_binary_x509_crt_bundle_start");
 extern const uint8_t x509_crt_imported_bundle_bin_end[]   asm("_binary_x509_crt_bundle_end");
 

@@ -13,7 +13,7 @@
  * server, serial command, etc.) — this sketch shows the library calls only.
  *
  * Version and app name must be embedded by the build system:
- *   PlatformIO: board_build.cmake_extra_args = -DPROJECT_VER="2026.05.01" -DPROJECT_NAME="My Device"
+ *   arduino-cli: --build-property "build.extra_flags=-DPROJECT_VER=\"2026.05.01\" -DPROJECT_NAME=\"My Device\""
  *   ESP-IDF:    set(PROJECT_VER "2026.05.01") in CMakeLists.txt
  *
  * sdkconfig:

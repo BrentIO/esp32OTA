@@ -367,7 +367,7 @@ bool esp32OTA::checkForUpdate() {
     const esp_app_desc_t* desc = esp_ota_get_app_description();
     if (desc->version[0] == '\0') {
         // Version was not embedded by the build system — semver comparison cannot work.
-        // Set PROJECT_VER in CMakeLists.txt or via board_build.cmake_extra_args in PlatformIO.
+        // Set PROJECT_VER in CMakeLists.txt or via --build-property with arduino-cli.
         if (_onError) _onError("", (int)ESP_ERR_INVALID_VERSION);
         delete doc;
         return false;

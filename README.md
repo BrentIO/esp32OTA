@@ -15,18 +15,17 @@ Loosely based on [chrisjoyce911/esp32FOTA](https://github.com/chrisjoyce911/esp3
 
 ## Configuration
 
-The following timeouts can be overridden at build time via `build_flags` in platformio.ini:
+The following timeouts can be overridden at build time:
 
 | Define | Default | Description |
 |---|---|---|
 | `ESP32OTA_CONNECT_TIMEOUT_MS` | `10000` | Milliseconds to wait for the server to begin responding |
 | `ESP32OTA_STALL_TIMEOUT_MS` | `5000` | Milliseconds to wait between data chunks before aborting |
 
-```ini
-[env:myboard]
-build_flags =
-    -DESP32OTA_CONNECT_TIMEOUT_MS=20000
-    -DESP32OTA_STALL_TIMEOUT_MS=10000
+```bash
+arduino-cli compile --fqbn esp32:esp32:esp32 \
+  --build-property "build.extra_flags=-DESP32OTA_CONNECT_TIMEOUT_MS=20000 -DESP32OTA_STALL_TIMEOUT_MS=10000" \
+  your_sketch.ino
 ```
 
 ---
@@ -44,12 +43,11 @@ build_flags =
 
 The library reads version and application name at runtime from `esp_ota_get_app_description()`. These are standard ESP-IDF fields populated by the build system — set them using the mechanisms below, not preprocessor defines.
 
-**PlatformIO (platformio.ini):**
-```ini
-[env:myboard]
-board_build.cmake_extra_args =
-    -DPROJECT_VER="2026.05.01"
-    -DPROJECT_NAME="My Device"
+**Arduino CLI:**
+```bash
+arduino-cli compile --fqbn esp32:esp32:esp32 \
+  --build-property "build.extra_flags=-DPROJECT_VER=\"2026.05.01\" -DPROJECT_NAME=\"My Device\"" \
+  your_sketch.ino
 ```
 
 **ESP-IDF (CMakeLists.txt):**
