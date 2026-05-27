@@ -1,0 +1,35 @@
+name: Arduino CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: arduino/setup-arduino-cli@v2
+
+      - name: Install ESP32 core
+        run: |
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+
+      - name: Install dependencies
+        run: |
+          arduino-cli lib install "ArduinoJson"
+          arduino-cli lib install "PubSubClient"
+
+      - name: Link library into Arduino libraries path
+        run: ln -s $GITHUB_WORKSPACE $HOME/Arduino/libraries/esp32OTA
+
+      - name: Compile periodicOTA example
+        run: arduino-cli compile --fqbn esp32:esp32:esp32 examples/periodicOTA/periodicOTA.ino
+
+      - name: Compile forcedOTA example
+        run: arduino-cli compile --fqbn esp32:esp32:esp32 examples/forcedOTA/forcedOTA.ino
+
+      - name: Compile mqttUpdateHA example
+        run: arduino-cli compile --fqbn esp32:esp32:esp32 examples/mqttUpdateHA/mqttUpdateHA.ino
