@@ -3,11 +3,11 @@
  *   execOTA(doc)              — full manifest JSON, flashes all listed partitions
  *   flashPartition(label, url) — single partition directly from a URL
  *
- * Demonstrates loading a self-signed CA certificate from SPIFFS into PSRAM
+ * Demonstrates loading a self-signed CA certificate from LittleFS into PSRAM
  * so it survives the OTA session without consuming internal heap. Falls back
  * to internal heap if PSRAM is not available.
  *
- * The cert must be stored at /cert.pem on the SPIFFS partition before running.
+ * The cert must be stored at /cert.pem on the LittleFS partition before running.
  *
  * How the forced paths are triggered is an application concern (MQTT, HTTP
  * server, serial command, etc.) — this sketch shows the library calls only.
@@ -24,7 +24,7 @@
 #include <ArduinoJson.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
-#include <SPIFFS.h>
+#include <LittleFS.h>
 
 const char* WIFI_SSID     = "your-ssid";
 const char* WIFI_PASSWORD = "your-password";
@@ -34,8 +34,8 @@ WiFiClientSecure client;
 
 char* certBuf = nullptr;
 
-bool loadCertFromSPIFFS(const char* path) {
-    File f = SPIFFS.open(path, "r");
+bool loadCertFromLittleFS(const char* path) {
+    File f = LittleFS.open(path, "r");
     if (!f) return false;
 
     size_t len = f.size();
@@ -64,13 +64,13 @@ void setup() {
 
     ota.markAppValid();
 
-    if (!SPIFFS.begin()) {
-        Serial.println("SPIFFS mount failed");
+    if (!LittleFS.begin()) {
+        Serial.println("LittleFS mount failed");
         return;
     }
 
-    if (!loadCertFromSPIFFS("/cert.pem")) {
-        Serial.println("Failed to load cert — check /cert.pem on SPIFFS");
+    if (!loadCertFromLittleFS("/cert.pem")) {
+        Serial.println("Failed to load cert — check /cert.pem on LittleFS");
         return;
     }
 
