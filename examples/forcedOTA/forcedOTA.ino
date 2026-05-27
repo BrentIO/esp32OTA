@@ -1,7 +1,13 @@
 /*
- * forcedOTA — two forced-update paths exposed over HTTP:
+ * forcedOTA — two forced-update paths exposed over HTTPS:
  *   POST /update  body: manifest JSON  → execOTA(doc), no version check
  *   POST /flash?partition=ui&url=...   → flashPartition(), no restart
+ *
+ * Demonstrates loading a self-signed CA certificate from SPIFFS into PSRAM
+ * so it survives the OTA session without consuming internal heap. Falls back
+ * to internal heap if PSRAM is not available.
+ *
+ * The cert must be stored at /cert.pem on the SPIFFS partition before running.
  *
  * Version and app name must be embedded by the build system:
  *   PlatformIO: board_build.cmake_extra_args = -DPROJECT_VER="2026.05.01" -DPROJECT_NAME="My Device"
@@ -14,15 +20,36 @@
 #include <esp32OTA.h>
 #include <ArduinoJson.h>
 #include <WiFi.h>
-#include <WiFiClient.h>
+#include <WiFiClientSecure.h>
 #include <WebServer.h>
+#include <SPIFFS.h>
 
 const char* WIFI_SSID     = "your-ssid";
 const char* WIFI_PASSWORD = "your-password";
 
-esp32OTA  ota;
-WiFiClient client;
-WebServer  server(80);
+esp32OTA         ota;
+WiFiClientSecure client;
+WebServer        server(80);
+
+char* certBuf = nullptr;
+
+bool loadCertFromSPIFFS(const char* path) {
+    File f = SPIFFS.open(path, "r");
+    if (!f) return false;
+
+    size_t len = f.size();
+
+#if defined(CONFIG_SPIRAM) || defined(BOARD_HAS_PSRAM)
+    certBuf = (char*)heap_caps_malloc(len + 1, MALLOC_CAP_SPIRAM);
+#endif
+    if (!certBuf) certBuf = (char*)malloc(len + 1);
+    if (!certBuf) { f.close(); return false; }
+
+    f.readBytes(certBuf, len);
+    certBuf[len] = '\0';
+    f.close();
+    return true;
+}
 
 // POST /update
 // Body: manifest JSON (object or array). Flashes immediately, no version check.
@@ -68,6 +95,18 @@ void setup() {
     Serial.println("\nWiFi connected: " + WiFi.localIP().toString());
 
     ota.markAppValid();
+
+    if (!SPIFFS.begin()) {
+        Serial.println("SPIFFS mount failed");
+        return;
+    }
+
+    if (!loadCertFromSPIFFS("/cert.pem")) {
+        Serial.println("Failed to load cert — check /cert.pem on SPIFFS");
+        return;
+    }
+
+    client.setCACert(certBuf);  // certBuf lives in PSRAM for the application lifetime
     ota.setClient(&client);
     ota.setBlockedPartitions({"config", "nvs"});
 
