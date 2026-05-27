@@ -17,6 +17,14 @@ jobs:
         with:
           ref: main
 
+      - name: Validate version format
+        run: |
+          if [[ ! "${{ inputs.version }}" =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}$ ]]; then
+            echo "❌ Invalid version format: ${{ inputs.version }}. Expected YYYY.MM.bb"
+            exit 1
+          fi
+          echo "✅ Version format is valid: ${{ inputs.version }}"
+
       - name: Verify versions match input
         run: |
           PROPS_VERSION=$(grep '^version=' library.properties | cut -d'=' -f2)
