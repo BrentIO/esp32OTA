@@ -87,11 +87,11 @@ public:
 
     // Set the running firmware version used for manifest comparison.
     // Must be called before checkForUpdate() or execOTA().
-    void currentVersion(const char* version);
+    void setCurrentVersion(const char* version);
 
     // Set the application name used to find the matching manifest entry.
     // Must be called before checkForUpdate() or execOTA().
-    void applicationName(const char* name);
+    void setApplicationName(const char* name);
 
     // Fetch manifest from the configured URL. Compare manifest version against the running
     // firmware's version set via currentVersion(). Fires onAvailable if a newer version is found.

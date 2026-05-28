@@ -30,8 +30,8 @@ void esp32OTA::useBundledCerts() {
 void esp32OTA::setCertificate(const char* pem) { _certificate = pem; }
 const char* esp32OTA::getCertificate() const   { return _certificate.c_str(); }
 
-void esp32OTA::currentVersion(const char* v)  { _currentVersion  = v ? v : ""; }
-void esp32OTA::applicationName(const char* n) { _applicationName = n ? n : ""; }
+void esp32OTA::setCurrentVersion(const char* v)  { _currentVersion  = v ? v : ""; }
+void esp32OTA::setApplicationName(const char* n) { _applicationName = n ? n : ""; }
 
 void esp32OTA::setBlockedPartitions(std::initializer_list<const char*> labels) {
     for (const char* l : labels) _blockedPartitions.emplace_back(l);
