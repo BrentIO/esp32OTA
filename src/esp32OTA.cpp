@@ -30,6 +30,9 @@ void esp32OTA::useBundledCerts() {
 void esp32OTA::setCertificate(const char* pem) { _certificate = pem; }
 const char* esp32OTA::getCertificate() const   { return _certificate.c_str(); }
 
+void esp32OTA::currentVersion(const char* v)  { _currentVersion  = v ? v : ""; }
+void esp32OTA::applicationName(const char* n) { _applicationName = n ? n : ""; }
+
 void esp32OTA::setBlockedPartitions(std::initializer_list<const char*> labels) {
     for (const char* l : labels) _blockedPartitions.emplace_back(l);
 }
@@ -377,16 +380,13 @@ bool esp32OTA::checkForUpdate() {
         return false;
     }
 
-    const esp_app_desc_t* desc = esp_ota_get_app_description();
-    if (desc->version[0] == '\0') {
-        // Version was not embedded by the build system — semver comparison cannot work.
-        // Set PROJECT_VER in CMakeLists.txt or via --build-property with arduino-cli.
-        if (_onError) _onError("", (int)ESP_ERR_INVALID_VERSION);
+    if (_currentVersion.isEmpty() || _applicationName.isEmpty()) {
+        if (_onError) _onError("", (int)ESP_ERR_INVALID_STATE);
         delete doc;
         return false;
     }
 
-    JsonObject entry = _findManifestEntry(*doc, desc->project_name);
+    JsonObject entry = _findManifestEntry(*doc, _applicationName.c_str());
     if (entry.isNull()) {
         if (_onError) _onError("", (int)ESP_ERR_NOT_FOUND);
         delete doc;
@@ -400,7 +400,7 @@ bool esp32OTA::checkForUpdate() {
         return false;
     }
 
-    if (_semverCompare(manifestVersion, desc->version) <= 0) {
+    if (_semverCompare(manifestVersion, _currentVersion.c_str()) <= 0) {
         delete doc;
         return false;
     }
@@ -450,8 +450,13 @@ bool esp32OTA::flashPartition(const char* partitionLabel, const char* url) {
 // ─── Manifest execution ───────────────────────────────────────────────────────
 
 bool esp32OTA::_execManifest(JsonDocument& doc, bool forceUpdate) {
-    const esp_app_desc_t* desc = esp_ota_get_app_description();
-    JsonObject entry = _findManifestEntry(doc, desc->project_name);
+    if (_currentVersion.isEmpty() || _applicationName.isEmpty()) {
+        if (_onError) _onError("", (int)ESP_ERR_INVALID_STATE);
+        if (_onComplete) _onComplete(false);
+        return false;
+    }
+
+    JsonObject entry = _findManifestEntry(doc, _applicationName.c_str());
 
     if (entry.isNull()) {
         if (_onComplete) _onComplete(false);
@@ -460,7 +465,7 @@ bool esp32OTA::_execManifest(JsonDocument& doc, bool forceUpdate) {
 
     if (!forceUpdate) {
         const char* ver = entry["version"] | (const char*)nullptr;
-        if (!ver || _semverCompare(ver, desc->version) <= 0) {
+        if (!ver || _semverCompare(ver, _currentVersion.c_str()) <= 0) {
             if (_onComplete) _onComplete(false);
             return false;
         }

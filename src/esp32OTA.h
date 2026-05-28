@@ -85,8 +85,16 @@ public:
     void onAvailable(OTAAvailableCallback cb);
     void onError(OTAErrorCallback cb);
 
+    // Set the running firmware version used for manifest comparison.
+    // Must be called before checkForUpdate() or execOTA().
+    void currentVersion(const char* version);
+
+    // Set the application name used to find the matching manifest entry.
+    // Must be called before checkForUpdate() or execOTA().
+    void applicationName(const char* name);
+
     // Fetch manifest from the configured URL. Compare manifest version against the running
-    // firmware's esp_app_desc_t. Fires onAvailable if a newer version is found.
+    // firmware's version set via currentVersion(). Fires onAvailable if a newer version is found.
     // Returns true if an update is available. Does not flash.
     bool checkForUpdate();
 
@@ -129,6 +137,8 @@ private:
     String               _availableVersion;
     String               _releaseURL;
     String               _cachedManifest;
+    String               _currentVersion;
+    String               _applicationName;
 
     OTAProgressCallback      _onProgress      = nullptr;
     OTAPartitionDoneCallback _onPartitionDone = nullptr;
