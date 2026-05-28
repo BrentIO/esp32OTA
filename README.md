@@ -96,10 +96,8 @@ Add a `sha256` field to any binary entry to validate the download:
 ```cpp
 #include <esp32OTA.h>
 #include <WiFi.h>
-#include <WiFiClientSecure.h>
 
 esp32OTA ota;
-WiFiClientSecure client;
 
 void setup() {
     WiFi.begin("ssid", "password");
@@ -108,8 +106,7 @@ void setup() {
     // Always call first in setup() — cancels rollback if this is a post-OTA boot.
     ota.markAppValid();
 
-    client.setCACertBundle(x509_crt_imported_bundle_bin_start);
-    ota.setClient(&client);
+    ota.useBundledCerts();  // HTTPS via ESP-IDF built-in Mozilla CA bundle; no client object needed
     ota.setManifestURL("https://firmware.example.com/manifest.json");
     ota.addHeader("X-Device-UUID", "your-device-uuid");
     ota.setBlockedPartitions({"config", "nvs"});
@@ -175,25 +172,57 @@ Requires `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y` in sdkconfig.
 
 ## HTTP vs HTTPS
 
-**Plain HTTP:**
+**HTTPS with bundled Mozilla CA certificates (recommended):**
 ```cpp
-WiFiClient client;
-ota.setClient(&client);
+ota.useBundledCerts();
+// No client object needed — TLS is handled internally via esp_http_client.
+// Works with any transport (WiFi, W5500 Ethernet, etc.).
 ```
 
-**HTTPS with bundled Mozilla CA certificates:**
-```cpp
-WiFiClientSecure client;
-client.setCACertBundle(x509_crt_imported_bundle_bin_start);
-ota.setClient(&client);
-```
-
-**HTTPS with a custom PEM certificate:**
+**HTTPS with a custom PEM certificate (self-signed or private CA):**
 ```cpp
 WiFiClientSecure client;
 client.setCACert(my_root_ca_pem);
 ota.setClient(&client);
 ```
 
-**W5500 Ethernet with HTTPS:** use `SSLClient` (OPEnSLab-OSU) wrapping `EthernetClient`.
+**Plain HTTP:**
+```cpp
+WiFiClient client;
+ota.setClient(&client);
+```
+
+---
+
+## W5500 Ethernet
+
+Use `ETH.h` (ESP32 Arduino core v3+), **not** WIZnet's standalone `Ethernet.h` library.
+
+With `ETH.h`, the W5500 is used as a MAC/PHY only — the TCP/IP stack (lwIP) runs on the ESP32 via the ESP-IDF `esp_eth` SPI driver. This keeps the library on the same lwIP stack as WiFi and makes `useBundledCerts()` work correctly, since `esp_http_client` uses lwIP sockets directly.
+
+WIZnet's `Ethernet.h` runs TCP/IP inside the W5500 chip and bypasses lwIP entirely. That path is not supported.
+
+```cpp
+#include <ETH.h>
+
+// Adjust pins for your board
+#define W5500_CS    5
+#define W5500_INT   4
+#define W5500_RST   -1
+#define W5500_SCK   18
+#define W5500_MISO  19
+#define W5500_MOSI  23
+
+Network.onEvent([](arduino_event_id_t event) {
+    if (event == ARDUINO_EVENT_ETH_GOT_IP) Serial.println("Ethernet up");
+});
+
+ETH.begin(ETH_PHY_W5500, 1, W5500_CS, W5500_INT, W5500_RST,
+          SPI3_HOST, W5500_SCK, W5500_MISO, W5500_MOSI);
+
+// Then use useBundledCerts() exactly as you would over WiFi:
+ota.useBundledCerts();
+```
+
+See `examples/periodicOTA` for a complete W5500 sketch.
 

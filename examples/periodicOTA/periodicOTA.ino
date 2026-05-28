@@ -1,9 +1,13 @@
 /*
  * periodicOTA — checks for an update once per day and flashes automatically.
  *
- * Uses the ESP-IDF built-in Mozilla CA bundle via useBundledCerts(). No client
- * object or certificate management is required; the library handles HTTPS
- * internally through esp_http_client with crt_bundle_attach.
+ * Uses W5500 SPI Ethernet for connectivity and the ESP-IDF built-in Mozilla CA
+ * bundle via useBundledCerts(). No client object or certificate management is
+ * required; the library handles HTTPS internally through esp_http_client with
+ * crt_bundle_attach.
+ *
+ * Pin assignments below are examples — adjust for your hardware.
+ * Requires ESP32 Arduino core v3.x for ETH.h W5500 SPI support.
  *
  * Version and app name must be embedded by the build system:
  *   arduino-cli: --build-property "build.extra_flags=-DPROJECT_VER=\"2026.05.01\" -DPROJECT_NAME=\"My Device\""
@@ -14,24 +18,45 @@
  */
 
 #include <esp32OTA.h>
-#include <WiFi.h>
+#include <ETH.h>
 
-const char* WIFI_SSID     = "your-ssid";
-const char* WIFI_PASSWORD = "your-password";
-const char* MANIFEST_URL  = "https://firmware.example.com/manifest.json";
-const char* DEVICE_UUID   = "your-device-uuid";
+// W5500 SPI wiring — adjust for your board
+#define W5500_CS    5
+#define W5500_INT   4
+#define W5500_RST   -1   // -1 if reset is not wired
+#define W5500_SCK   18
+#define W5500_MISO  19
+#define W5500_MOSI  23
 
-esp32OTA ota;
+const char* MANIFEST_URL = "https://firmware.example.com/manifest.json";
+const char* DEVICE_UUID  = "your-device-uuid";
+
+esp32OTA    ota;
+static bool eth_connected = false;
+
+void onEthEvent(arduino_event_id_t event) {
+    switch (event) {
+        case ARDUINO_EVENT_ETH_GOT_IP:
+            Serial.printf("Ethernet up — IP: %s\n", ETH.localIP().toString().c_str());
+            eth_connected = true;
+            break;
+        case ARDUINO_EVENT_ETH_DISCONNECTED:
+            Serial.println("Ethernet disconnected");
+            eth_connected = false;
+            break;
+        default:
+            break;
+    }
+}
 
 void setup() {
     Serial.begin(115200);
 
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-    Serial.println("\nWiFi connected");
+    Network.onEvent(onEthEvent);
+    ETH.begin(ETH_PHY_W5500, 1, W5500_CS, W5500_INT, W5500_RST,
+              SPI3_HOST, W5500_SCK, W5500_MISO, W5500_MOSI);
+
+    while (!eth_connected) delay(100);
 
     // Always call first in setup() — cancels rollback if this is a post-OTA boot.
     ota.markAppValid();
