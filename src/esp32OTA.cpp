@@ -115,7 +115,11 @@ bool esp32OTA::_httpConnect(const char* url, int& contentLength) {
         port = isHttps ? 443 : 80;
     }
 
-    if (!_client->connect(host.c_str(), port)) return false;
+    log_d("_httpConnect: connecting to %s:%d", host.c_str(), port);
+    if (!_client->connect(host.c_str(), port)) {
+        log_e("_httpConnect: connect failed for %s:%d", host.c_str(), port);
+        return false;
+    }
 
     _client->setTimeout(15000);
     _client->print(String("GET ") + path + " HTTP/1.1\r\n");
@@ -138,6 +142,7 @@ bool esp32OTA::_httpConnect(const char* url, int& contentLength) {
     int sp = statusLine.indexOf(' ');
     int httpCode = statusLine.substring(sp + 1, sp + 4).toInt();
     if (httpCode != 200) {
+        log_e("_httpConnect: HTTP %d from %s", httpCode, url);
         _client->stop();
         return false;
     }
@@ -222,6 +227,7 @@ bool esp32OTA::_downloadToPartition(const char* url, const esp_partition_t* targ
         if (_onError) _onError(label, -1);
         return false;
     }
+    log_d("_downloadToPartition: partition=%s url=%s content-length=%d", label, url, contentLength);
 
     mbedtls_md_context_t sha_ctx;
     bool doSha = (sha256 != nullptr && sha256[0] != '\0');
@@ -277,6 +283,7 @@ bool esp32OTA::_downloadToPartition(const char* url, const esp_partition_t* targ
 
     if (written == 0) {
         if (doSha) mbedtls_md_free(&sha_ctx);
+        log_e("_downloadToPartition: no bytes written for partition=%s", label);
         if (_onError) _onError(label, (int)ESP_ERR_INVALID_SIZE);
         return false;
     }
@@ -299,6 +306,7 @@ bool esp32OTA::_downloadToPartition(const char* url, const esp_partition_t* targ
 bool esp32OTA::_flashApp(const char* url, const char* sha256) {
     const esp_partition_t* update_partition = esp_ota_get_next_update_partition(NULL);
     if (!update_partition) {
+        log_e("flashApp: no OTA partition available");
         if (_onError)        _onError("app", (int)ESP_ERR_NOT_FOUND);
         if (_onPartitionDone) _onPartitionDone("app", false);
         return false;
@@ -307,6 +315,7 @@ bool esp32OTA::_flashApp(const char* url, const char* sha256) {
     esp_ota_handle_t ota_handle;
     esp_err_t err = esp_ota_begin(update_partition, OTA_WITH_SEQUENTIAL_WRITES, &ota_handle);
     if (err != ESP_OK) {
+        log_e("flashApp: esp_ota_begin failed: %s", esp_err_to_name(err));
         if (_onError)        _onError("app", (int)err);
         if (_onPartitionDone) _onPartitionDone("app", false);
         return false;
@@ -318,7 +327,10 @@ bool esp32OTA::_flashApp(const char* url, const char* sha256) {
         err = esp_ota_end(ota_handle);
         if (err == ESP_OK) err = esp_ota_set_boot_partition(update_partition);
         ok  = (err == ESP_OK);
-        if (!ok && _onError) _onError("app", (int)err);
+        if (!ok) {
+            log_e("flashApp: finalize failed: %s", esp_err_to_name(err));
+            if (_onError) _onError("app", (int)err);
+        }
     } else {
         esp_ota_abort(ota_handle);
     }
@@ -335,6 +347,7 @@ bool esp32OTA::_flashDataPartition(const char* label, const char* url, const cha
             ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_FAT, label);
     }
     if (!target) {
+        log_e("flashPartition: no SPIFFS/FAT partition labelled \"%s\"", label);
         if (_onError)        _onError(label, (int)ESP_ERR_NOT_FOUND);
         if (_onPartitionDone) _onPartitionDone(label, false);
         return false;
@@ -440,9 +453,13 @@ bool esp32OTA::execOTA(JsonDocument& doc) {
 }
 
 bool esp32OTA::flashPartition(const char* partitionLabel, const char* url) {
+    log_d("flashPartition: label=%s url=%s", partitionLabel, url);
     if (_isBlocked(partitionLabel)) {
         if (_onError) _onError(partitionLabel, (int)ESP_ERR_INVALID_ARG);
         return false;
+    }
+    if (strcmp(partitionLabel, "app") == 0) {
+        return _flashApp(url, nullptr);
     }
     return _flashDataPartition(partitionLabel, url, nullptr);
 }
