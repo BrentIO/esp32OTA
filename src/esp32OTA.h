@@ -27,12 +27,30 @@
 // needing raw bundle bytes (which are not available as ELF symbols in
 // Arduino/PlatformIO builds). Works on any lwIP-backed transport: WiFi,
 // native RMII Ethernet, or W5500 attached via the ESP-IDF SPI Ethernet driver.
+//
+// connect() overrides re-attach the bundle before each connection because
+// stop_ssl_socket() zeros the sslclient_context struct (including bundle_attach_cb),
+// causing every connection after the first stop() to fail with error -1.
 class esp32OTA_SecureClient : public NetworkClientSecure {
 public:
     void useFrameworkCertBundle() {
+        _useBundle = true;
         attach_ssl_certificate_bundle(sslclient.get(), true);
         _use_ca_bundle = true;
     }
+
+    int connect(const char* host, uint16_t port) override {
+        if (_useBundle) attach_ssl_certificate_bundle(sslclient.get(), true);
+        return NetworkClientSecure::connect(host, port);
+    }
+
+    int connect(IPAddress ip, uint16_t port) override {
+        if (_useBundle) attach_ssl_certificate_bundle(sslclient.get(), true);
+        return NetworkClientSecure::connect(ip, port);
+    }
+
+private:
+    bool _useBundle = false;
 };
 
 using OTAProgressCallback      = std::function<void(const char* partition, size_t written, size_t total)>;
