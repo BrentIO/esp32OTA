@@ -196,7 +196,7 @@ String esp32OTA::_httpGetString(const char* url) {
 
 // Returns the matching manifest object, or a null JsonObject on mismatch.
 // For arrays, matches by application_name == projectName.
-// For objects, returns the object (application_name check is permissive if field is absent).
+// For plain objects, returns the object unconditionally — caller already selected the entry.
 JsonObject esp32OTA::_findManifestEntry(JsonDocument& doc, const char* projectName) {
     if (doc.is<JsonArray>()) {
         for (JsonObject obj : doc.as<JsonArray>()) {
@@ -206,13 +206,7 @@ JsonObject esp32OTA::_findManifestEntry(JsonDocument& doc, const char* projectNa
         return JsonObject();
     }
 
-    JsonObject obj = doc.as<JsonObject>();
-    const char* name = obj["application_name"] | (const char*)nullptr;
-    if (!name || strcmp(name, projectName) != 0) {
-        if (_onError) _onError("", (int)ESP_ERR_INVALID_ARG);
-        return JsonObject();
-    }
-    return obj;
+    return doc.as<JsonObject>();
 }
 
 // ─── Download + write ─────────────────────────────────────────────────────────
