@@ -444,6 +444,9 @@ bool esp32OTA::flashPartition(const char* partitionLabel, const char* url) {
         if (_onError) _onError(partitionLabel, (int)ESP_ERR_INVALID_ARG);
         return false;
     }
+    if (strcmp(partitionLabel, "app") == 0) {
+        return _flashApp(url, nullptr);
+    }
     return _flashDataPartition(partitionLabel, url, nullptr);
 }
 
