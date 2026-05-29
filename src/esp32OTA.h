@@ -107,7 +107,8 @@ public:
     bool execOTA(const char* url);
 
     // Execute OTA from a pre-parsed JsonDocument. No version comparison — flashes immediately.
-    // application_name filtering still applies if the field is present.
+    // If the document is a JSON array, application_name is used to select the matching entry.
+    // If the document is a plain object, it is used directly without name matching.
     bool execOTA(JsonDocument& doc);
 
     // Flash a single partition immediately from a URL. No version check. No restart.
