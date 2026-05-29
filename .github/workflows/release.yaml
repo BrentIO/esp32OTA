@@ -5,14 +5,15 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version (YYYY.MM.DD)'
+        description: 'Release version (YYYY.MM.bb)'
         required: true
+
+permissions:
+  contents: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -20,7 +21,7 @@ jobs:
 
       - name: Validate version format
         run: |
-          if [[ ! "${{ inputs.version }}" =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]{2}$ ]]; then
+          if [[ ! "${{ inputs.version }}" =~ ^[0-9]{4}\.(0[1-9]|1[0-2])\.(0[1-9]|[1-9][0-9])$ ]]; then
             echo "❌ Invalid version format: ${{ inputs.version }}. Expected YYYY.MM.bb"
             exit 1
           fi
