@@ -83,11 +83,13 @@ For multi-application manifests, use a top-level JSON array. The library matches
 
 ### Optional SHA-256 Verification
 
-Add a `sha256` field to any binary entry to validate the download:
+Add a `sha256` field to any binary entry to validate the download before activation:
 
 ```json
 {"partition": "app", "url": "https://...", "sha256": "abc123..."}
 ```
+
+The same verification is available for direct partition flashes via the three-argument form of `flashPartition` — see [Force a single partition directly](#force-a-single-partition-directly).
 
 ---
 
@@ -145,7 +147,16 @@ ota.execOTA(doc);
 ### Force a single partition directly
 
 ```cpp
-// Does not reboot — caller decides when to restart
+// With SHA-256 verification (recommended) — aborts before activation on digest mismatch
+bool ok = ota.flashPartition("ui", "https://firmware.example.com/ui.bin",
+                             "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+if (!ok) {
+    // onError fired with the error code; partition unchanged, no restart needed
+    return;
+}
+ESP.restart();
+
+// Without SHA-256 (skips digest check) — does not reboot, caller decides when to restart
 ota.flashPartition("ui", "https://firmware.example.com/ui.bin");
 ESP.restart();
 ```
