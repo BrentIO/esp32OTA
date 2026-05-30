@@ -1,7 +1,8 @@
 /*
  * forcedOTA — demonstrates two forced-update paths with no version check:
- *   execOTA(doc)              — full manifest JSON, flashes all listed partitions
- *   flashPartition(label, url) — single partition directly from a URL
+ *   execOTA(doc)                       — full manifest JSON, flashes all listed partitions
+ *   flashPartition(label, url, sha256) — single partition with SHA-256 verification
+ *   flashPartition(label, url)         — single partition, skips digest check
  *
  * Demonstrates loading a self-signed CA certificate from LittleFS into PSRAM
  * so it survives the OTA session without consuming internal heap. Falls back
@@ -109,7 +110,16 @@ void loop() {
     // deserializeJson(doc, manifestJson);
     // ota.execOTA(doc);
 
-    // --- Forced single-partition flash (no restart — caller decides when) ---
+    // --- Forced single-partition flash with SHA-256 verification (recommended) ---
+    // bool ok = ota.flashPartition("ui", "https://firmware.example.com/ui.bin",
+    //                              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+    // if (!ok) {
+    //     // onError fired with the error code; partition unchanged, no restart needed
+    //     return;
+    // }
+    // ESP.restart();
+
+    // --- Without SHA-256 (skips digest check) ---
     // ota.flashPartition("ui", "https://firmware.example.com/ui.bin");
     // ESP.restart();
 }

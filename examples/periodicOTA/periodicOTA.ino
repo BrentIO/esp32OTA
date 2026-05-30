@@ -80,6 +80,9 @@ void setup() {
 
     ota.onPartitionComplete([](const char* partition, bool success) {
         Serial.printf("[%s] %s\n", partition, success ? "done" : "FAILED");
+        // App failure aborts immediately and fires onComplete(false).
+        // Data partition failure continues remaining partitions; onComplete(false)
+        // fires at the end — restart or not is the caller's decision.
     });
 
     ota.onComplete([](bool success) {
