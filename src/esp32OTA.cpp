@@ -542,6 +542,5 @@ bool esp32OTA::_execManifest(JsonDocument& doc, bool forceUpdate) {
     }
 
     if (_onComplete) _onComplete(allSuccess);
-    if (allSuccess)  esp_restart();
     return allSuccess;
 }
