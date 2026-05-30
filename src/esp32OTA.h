@@ -133,6 +133,10 @@ public:
     // Blocked partition list and library-level type protection are enforced.
     bool flashPartition(const char* partitionLabel, const char* url);
 
+    // Flash a single partition with SHA-256 verification before activation.
+    // Pass nullptr for sha256 to skip verification (identical to the two-argument form).
+    bool flashPartition(const char* partitionLabel, const char* url, const char* sha256);
+
     // Confirm the running app firmware is valid. Call after startup self-tests pass.
     // Wraps esp_ota_mark_app_valid_cancel_rollback().
     void markAppValid();

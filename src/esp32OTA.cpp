@@ -447,15 +447,19 @@ bool esp32OTA::execOTA(JsonDocument& doc) {
 }
 
 bool esp32OTA::flashPartition(const char* partitionLabel, const char* url) {
+    return flashPartition(partitionLabel, url, nullptr);
+}
+
+bool esp32OTA::flashPartition(const char* partitionLabel, const char* url, const char* sha256) {
     log_d("flashPartition: label=%s url=%s", partitionLabel, url);
     if (_isBlocked(partitionLabel)) {
         if (_onError) _onError(partitionLabel, (int)ESP_ERR_INVALID_ARG);
         return false;
     }
     if (strcmp(partitionLabel, "app") == 0) {
-        return _flashApp(url, nullptr);
+        return _flashApp(url, sha256);
     }
-    return _flashDataPartition(partitionLabel, url, nullptr);
+    return _flashDataPartition(partitionLabel, url, sha256);
 }
 
 // ─── Manifest execution ───────────────────────────────────────────────────────
