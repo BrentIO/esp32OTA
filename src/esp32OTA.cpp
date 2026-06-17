@@ -49,6 +49,7 @@ void esp32OTA::onError(OTAErrorCallback cb)                    { _onError       
 
 const char* esp32OTA::getAvailableVersion() const { return _availableVersion.c_str(); }
 const char* esp32OTA::getReleaseURL()       const { return _releaseURL.c_str(); }
+int         esp32OTA::getLastHttpCode()     const { return _lastHttpCode; }
 
 // ─── Rollback ─────────────────────────────────────────────────────────────────
 
@@ -95,7 +96,10 @@ bool esp32OTA::_isBlocked(const char* label) {
 
 // Opens a connection, sends GET, parses status and headers.
 // Returns true (HTTP 200) with client positioned at body start and contentLength set (-1 if unknown).
+// Sets _lastHttpCode to 0 on TCP/DNS failure, or the actual HTTP status code on any HTTP response.
 bool esp32OTA::_httpConnect(const char* url, int& contentLength) {
+    _lastHttpCode = 0;
+
     String urlStr(url);
     bool isHttps = urlStr.startsWith("https://");
     String rest  = urlStr.substring(isHttps ? 8 : 7);
@@ -141,6 +145,7 @@ bool esp32OTA::_httpConnect(const char* url, int& contentLength) {
     String statusLine = _client->readStringUntil('\n');
     int sp = statusLine.indexOf(' ');
     int httpCode = statusLine.substring(sp + 1, sp + 4).toInt();
+    _lastHttpCode = httpCode;
     if (httpCode != 200) {
         log_e("_httpConnect: HTTP %d from %s", httpCode, url);
         _client->stop();
@@ -218,7 +223,7 @@ bool esp32OTA::_downloadToPartition(const char* url, const esp_partition_t* targ
 
     int contentLength;
     if (!_httpConnect(url, contentLength)) {
-        if (_onError) _onError(label, -1);
+        if (_onError) _onError(label, _lastHttpCode == 0 ? -1 : _lastHttpCode);
         return false;
     }
     log_d("_downloadToPartition: partition=%s url=%s content-length=%d", label, url, contentLength);
@@ -375,7 +380,7 @@ bool esp32OTA::checkForUpdate() {
 
     String payload = _httpGetString(_manifestURL.c_str());
     if (payload.isEmpty()) {
-        if (_onError) _onError("", -1);
+        if (_onError) _onError("", _lastHttpCode == 0 ? -1 : _lastHttpCode);
         return false;
     }
 
