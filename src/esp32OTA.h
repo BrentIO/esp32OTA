@@ -129,6 +129,7 @@ public:
 
     const char* getAvailableVersion() const;
     const char* getReleaseURL() const;
+    int         getLastHttpCode() const;
 
 private:
     struct Header { String name; String value; };
@@ -164,4 +165,5 @@ private:
     JsonDocument* _allocateJsonDocument(size_t capacity);
     int         _semverCompare(const char* a, const char* b);
     bool        _verifySHA256(const uint8_t* digest, size_t len, const char* expectedHex);
+    int         _lastHttpCode = 0;
 };
